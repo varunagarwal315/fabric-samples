@@ -2,7 +2,7 @@
  * Copyright IBM Corp. All Rights Reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
- * 
+ *
  */
 
 'use strict';
@@ -35,11 +35,21 @@ exports.processBlockEvent = async function (channelname, block, use_couchdb, nan
 
         const dataArray = block.data.data;
 
+        // transaction filter for each transaction in dataArray
+        const txSuccess = block.metadata.metadata[2];
+
         for (var dataItem in dataArray) {
 
             // reject if a timestamp is not set
             if (dataArray[dataItem].payload.header.channel_header.timestamp == undefined) {
                 reject(new Error('Block timestamp is not defined'));
+            }
+
+            // only valid transactions (code=0) update the word state
+            // rest of transactions should not update couchdb either. Refer -
+            // https://github.com/hyperledger/fabric-sdk-node/blob/release-1.4/fabric-client/lib/protos/peer/transaction.proto
+            if (txSuccess[dataItem] !== 0) {
+              continue();
             }
 
             const timestamp = dataArray[dataItem].payload.header.channel_header.timestamp;
